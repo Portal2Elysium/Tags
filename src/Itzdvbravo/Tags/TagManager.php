@@ -33,18 +33,7 @@ class TagManager extends PluginBase{
         $this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
 
         $this->purechat = $this->getServer()->getPluginManager()->getPlugin("PureChat");
-        if($this->purechat === Null){
-            $this->getLogger()->critical("PureChat plugin not found");
-            $this->getLogger()->critical("Disabling the plugin");
-            $this->getServer()->getPluginManager()->disablePlugin($this);
-        }
-
         $this->pureperm = $this->getServer()->getPluginManager()->getPlugin("PurePerms");
-        if($this->pureperm === Null){
-            $this->getLogger()->critical("PurePerms plugin not found");
-            $this->getLogger()->critical("Disabling the plugin");
-            $this->getServer()->getPluginManager()->disablePlugin($this);
-        }
     }
 
     /**
