@@ -30,10 +30,11 @@ class TagManager extends PluginBase{
             $this->saveResource("config.yml");
         }
         self::$config = new Config($this->getDataFolder() . "config.yml", Config::YAML);
-        $this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
 
         $this->purechat = $this->getServer()->getPluginManager()->getPlugin("PureChat");
         $this->pureperm = $this->getServer()->getPluginManager()->getPlugin("PurePerms");
+
+        $this->getServer()->getPluginManager()->registerEvents(new EventListener($this), $this);
     }
 
     /**
