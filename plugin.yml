@@ -1,7 +1,7 @@
 name: Tags
 main: Itzdvbravo\Tags\TagManager
 
-version: 0.2
+version: 0.4
 api: 3.14.0
 
 author: Itzdvbravo
