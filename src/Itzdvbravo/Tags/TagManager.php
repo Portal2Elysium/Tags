@@ -16,6 +16,8 @@ use pocketmine\utils\TextFormat;
 
 class TagManager extends PluginBase{
 
+    const CONFIG_VERSION = 2;
+
     /** @var Config */
     public static $config;
 
@@ -30,6 +32,9 @@ class TagManager extends PluginBase{
             $this->saveResource("config.yml");
         }
         self::$config = new Config($this->getDataFolder() . "config.yml", Config::YAML);
+        if(self::$config->get("config-version", -1) !== self::CONFIG_VERSION){
+            $this->convertOldConfig();
+        }
 
         $this->purechat = $this->getServer()->getPluginManager()->getPlugin("PureChat");
         $this->pureperm = $this->getServer()->getPluginManager()->getPlugin("PurePerms");
@@ -43,39 +48,39 @@ class TagManager extends PluginBase{
      * @param Item   $item
      */
     public function giveTag(Player $player, $tag, Item $item){
-        $cfg = self::$config->get($tag);
-        $tagPerm = $cfg[0];
+        $cfg = self::$config->getNested("tags.". $tag);
+        $tagPerm = $cfg["perm"];
         if($player->hasPermission($tagPerm)){
-            $player->sendMessage(TextFormat::RED . "You Already Have§r {$cfg[1]}§4 Tag");
+            $player->sendMessage(TextFormat::RED . "You Already Have§r {$cfg["tag"]}");
         }else{
             $this->pureperm->getUserDataMgr()->setPermission($player, $tagPerm, null);
-            $player->sendMessage("§eYou have been given §r{$cfg[1]} \n§aUse /tag to equip it");
+            $player->sendMessage("§eYou have been given §r{$cfg["tag"]} \n§aUse /tag to equip it");
             $player->getInventory()->remove($item);
         }
     }
 
     /**
      * @param Player $player
-     * @param        $tag
+     * @param string $tag
      */
-    public function addTag(Player $player, $tag){
-        $cfg = self::$config->get($tag);
+    public function addTag(Player $player, string $tag){
+        $cfg = self::$config->getNested("tags." . $tag);
         $item = Item::get(Item::CLOCK, 0, 1);
-        $item->setCustomName(TextFormat::RESET . "{$cfg[1]}" . TextFormat::YELLOW . " Tag");
+        $item->setCustomName(TextFormat::RESET . "{$cfg["tag"]}" . TextFormat::YELLOW . " Tag");
         $item->setLore([TextFormat::GREEN . "Right Click To Obtain It"]);
         $nbt = $item->getNamedTag();
         $nbt->setString("tag", $tag);
         $item->setNamedTag($nbt);
         $player->getInventory()->addItem($item);
-        $player->sendMessage(TextFormat::GREEN . "You have gotten {$cfg[1]} " . TextFormat::GREEN . "tag");
+        $player->sendMessage(TextFormat::GREEN . "You have gotten {$cfg["tag"]} " . TextFormat::GREEN . "tag");
     }
 
     /**
      * @param Player $player
      */
     public function addRandomTag(Player $player){
-        $tag = array_rand(self::$config->getAll());
-        $this->addTag($player, $tag);
+        $selectedIndex = array_rand(self::$config->get("tags"));
+        $this->addTag($player, $selectedIndex);
     }
 
     /**
@@ -107,7 +112,7 @@ class TagManager extends PluginBase{
                                 $this->addRandomTag($person);
                                 $person->sendMessage(TextFormat::GREEN . "You have gotten an random tag");
                             }else{
-                                if(array_key_exists(strtolower($args[1]), self::$config->getAll())){
+                                if((self::$config->getNested("tag." . $args[1], false))){
                                     $this->addTag($person, $args[1]);
                                 }else{
                                     $player->sendMessage(TextFormat::GOLD . "Tag doesn't exist");
@@ -133,32 +138,49 @@ class TagManager extends PluginBase{
      */
     public function openForm(Player $player){
         $form = new SimpleForm(function(Player $player, $data = NULL){
-            if($data !== NULL){
-                $cfg = array_values(self::$config->getAll())[$data];
-                $permCheck = $cfg[0];
-                $tag = $cfg[1];
-                $realTag = " {$tag} ";
-                if($player->hasPermission($permCheck)){
-                    $this->purechat->setPrefix($realTag, $player);
-                    $player->sendMessage("§aTag Changed To§r {$cfg[1]}");
-                }else{
-                    $player->sendMessage("§4You don't have permission to use this tag");
-                }
+            if($data === null){
+                return;
+            }
+            $cfg = self::$config->getNested("tags." . $data);
+            $permCheck = $cfg["perm"];
+            $tag = $cfg["tag"];
+            $realTag = " {$tag} ";
+            if($player->hasPermission($permCheck)){
+                $this->purechat->setPrefix($realTag, $player);
+                $player->sendMessage("§aTag Changed To§r $tag");
+            }else{
+                $player->sendMessage("§4You don't have permission to use this tag");
             }
         });
         $form->setTitle("§aTags");
         $form->setContent("§eChoose Your Tag");
-        $cfg = self::$config->getAll();
+        $tags = self::$config->get("tags");
         $lock = TextFormat::RED . '§l§cLOCKED';
         $avaible = TextFormat::GREEN . '§l§aAVAILABLE';
-        foreach($cfg as $id => $tag){
-            if($player->hasPermission($tag[0])){
-                $form->addButton("{$tag[1]}" . "\n" . "{$avaible}");
-            }else{
-                $form->addButton("{$tag[1]}" . "\n" . "{$lock}");
+        foreach($tags as $id => $tagData){
+            if($player->hasPermission($tagData["perm"])){
+                $form->addButton("{$tagData["tag"]}" . "\n" . "{$avaible}", -1, "", $id);
+            }elseif((bool) self::$config->get("show-locked-tags", true)){
+                $form->addButton("{$tagData["tag"]}" . "\n" . "{$lock}", -1, "", $id);
             }
         }
         $form->sendToPlayer($player);
         return $form;
+    }
+
+    private function convertOldConfig(){
+
+        if(self::$config->get("config-version", -1) < 0){
+            $tags = [];
+            foreach(self::$config->getAll() as $tagName => $tagData){
+                $tags[$tagName]["perm"] = $tagData[0] ?? "";
+                $tags[$tagName]["tag"] = $tagData[1] ?? "";
+                self::$config->remove($tagName);
+            }
+            self::$config->set("show-locked-tags", true);
+            self::$config->set("tags", $tags);
+        }
+        self::$config->set("config-version", 2);
+        self::$config->save();
     }
 }
