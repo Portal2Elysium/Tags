@@ -20,15 +20,19 @@ Add custom tags to your server using this plugin!
 ### How to use?
 
 - **Creating Custom Tags**<br>
-For this go to *plugin_data/tags/config.yml* and then follow a pattern with the help of the pre-made plugins.  
-```
-  xd:
-    - tag.perm.xd
-    - "§f[§bXD§f]§r"
+For this go to *plugin_data/tags/config.yml* and then add or change any tags you'd like in the "tags" part of the config.  
+```yaml
+  tags:
+    xd:
+      perm: tag.perm.xd
+      tag: "§f[§bXD§f]§r"
+    rekt:
+      perm: tag.get.rekt
+      tag: "§4[§6REKT§4]§r
   ```
-  The first one, **xd** is used to identify the tag/giving someone the tag using it *(recommended is in lower case with no symbols)*.  
-  The second one, **tag.perm.xd** is the permission needed to use the tag.  
-  The third one, **§f[§bXD§f]§r** is what the tag will look like in the tag ui and when given to a player.  
+  In this example "xd" and "rekt" are the names of the tags to be used when doing `/givetag <player> <tag>`
+  The `perm` field is for the permission node the player must have to use the tag.
+  `tag` is the actual text that will show up.
 - **For PureChat**<br>  
 `{prefix}`, it changes the prefix of the player.
 
