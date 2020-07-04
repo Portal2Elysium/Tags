@@ -18,7 +18,6 @@ class TagManager extends PluginBase{
 
     /** @var Config */
     public static $config;
-    public $api;
 
     /** @var PureChat */
     public $purechat;
